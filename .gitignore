@@ -1,0 +1,35 @@
+# Environment
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Claude Code
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (user files)
+uploads/
+
+# Logs
+*.log
+
+# Docker
+.docker/
+
+# Alembic (keep migrations, ignore compiled)
+*.pyc
+app/database/migrations/__pycache__/
