@@ -246,11 +246,11 @@ Bot：📋 任务拆解
 
 | 任务创建 | 任务列表（风险排序） |
 |:---:|:---:|
-| ![任务创建](docs/screenshots/task-create.png) | ![风险排序](docs/screenshots/task-list.png) |
+| ![任务创建](docs/screenshots/task-create.jpg) | ![风险排序](docs/screenshots/task-list.jpg) |
 
 | 任务自动拆解 | 智能提醒 |
 |:---:|:---:|
-| ![任务拆解](docs/screenshots/task-decompose.png) | ![智能提醒](docs/screenshots/reminder.png) |
+| ![任务拆解](docs/screenshots/task-decompose.jpg) | ![智能提醒](docs/screenshots/reminder.jpg) |
 
 ## 📐 风险评分设计
 
