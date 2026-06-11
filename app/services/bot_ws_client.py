@@ -54,6 +54,7 @@ HELP_TEXT = """📚 DDL-Killer
 命令
 列表 — 查看待办
 完成 N — 标记已完成
+提醒 — 立即推送一条任务提醒
 文件 — 文件面板
 文件 N — 任务附件
 关联 文件ID 任务ID
@@ -361,6 +362,10 @@ async def handle_message(text: str, chatid: str, frame=None) -> str:
     if text == "帮助":
         return HELP_TEXT
 
+    if text == "提醒":
+        from app.services.scheduler import send_manual_reminder
+        return await send_manual_reminder(chatid)
+
     if text in ("列表", "任务"):
         return handle_list_regex(chatid)
 
@@ -530,7 +535,7 @@ def _is_command_or_task(text: str) -> bool:
     from file-association hint matching."""
     t = text.strip()
     # Fixed commands
-    if t in ("帮助", "列表", "任务", "文件", "清理", "清理已完成", "确认清理"):
+    if t in ("帮助", "列表", "任务", "文件", "清理", "清理已完成", "确认清理", "提醒"):
         return True
     # Regex command patterns
     if parse_complete_command(t) is not None:
@@ -662,17 +667,6 @@ async def on_message(frame):
         })
 
 
-async def _send_welcome(frame):
-    """Send welcome message on enter_chat event."""
-    body = frame.body
-    chatid = body.get("chatid") or body.get("from", {}).get("userid", "")
-    await _client.reply(frame, {
-        "chatid": chatid,
-        "msgtype": "markdown",
-        "markdown": {"content": "DDL-Killer 已就绪\n发送「帮助」查看使用指南"},
-    })
-
-
 _client: WSClient | None = None
 
 
@@ -689,7 +683,6 @@ async def run_bot(bot_id: str, secret: str):
     _client = WSClient(options)
 
     _client.on("message", on_message)
-    _client.on("event.enter_chat", _send_welcome)
 
     async def _on_any(frame):
         body_keys = list(frame.body.keys()) if isinstance(frame.body, dict) else "N/A"

@@ -21,6 +21,11 @@ async def lifespan(app: FastAPI):
     scheduler_task = None
 
     if BOT_ID and BOT_SECRET:
+        # Preload embedding model before bot connects (avoids 2-5s delay on first message)
+        from app.services.embedding_service import get_embedding_service
+        emb = get_embedding_service()
+        await emb.preload()
+
         from app.services.bot_ws_client import run_bot
         bot_task = asyncio.create_task(run_bot(BOT_ID, BOT_SECRET))
         print("[Main] Bot WebSocket client started")

@@ -27,6 +27,12 @@ class EmbeddingService:
     # Public API
     # ------------------------------------------------------------------
 
+    async def preload(self):
+        """Pre-load the embedding model so the first real request is fast."""
+        if self._provider == "fastembed" and self._model is None:
+            await self._embed_fastembed("warmup")
+            print("[Embedding] Model preloaded.")
+
     async def embed(self, text: str) -> Optional[list[float]]:
         """Generate embedding for a single text. Returns None on failure."""
         if self._provider == "none":

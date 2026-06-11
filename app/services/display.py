@@ -49,17 +49,35 @@ def _truncate(text: str, max_len: int = 30) -> str:
 
 
 def _ddl_status(ddl_time: datetime) -> str:
-    """Return a colored status tag for the DDL: 已过期/今天到期/明天到期."""
+    """Return a human-readable DDL status with remaining days/hours."""
     now = datetime.now()
     delta = ddl_time - now
     hours = delta.total_seconds() / 3600
     if hours < 0:
-        return ' <font color="warning">已过期</font>'
+        return ' — <font color="warning">已过期</font>'
     elif hours < 24:
-        return ' <font color="warning">今天到期</font>'
+        return ' — <font color="warning">⚠️ 紧急！</font>'
     elif hours < 48:
-        return ' <font color="info">明天到期</font>'
-    return ""
+        return ' — <font color="info">明天到期</font>'
+    else:
+        days = int(hours / 24)
+        return f" — 还有{days}天"
+
+
+def _remaining_label(ddl_time: datetime) -> str:
+    """Return '剩余 N 天' for task creation confirmation."""
+    now = datetime.now()
+    delta = ddl_time - now
+    hours = delta.total_seconds() / 3600
+    if hours < 0:
+        return '<font color="warning">已过期</font>'
+    elif hours < 24:
+        return '<font color="warning">⚠️ 今天到期</font>'
+    elif hours < 48:
+        return '<font color="info">明天到期</font>'
+    else:
+        days = int(hours / 24)
+        return f"剩余 {days} 天"
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +102,7 @@ def format_task_list(tasks: list[Task], max_show: int = 10) -> str:
         status = _ddl_status(t.ddl_time) if t.ddl_time else ""
         code = f" #{t.short_code}" if hasattr(t, 'short_code') and t.short_code else ""
 
-        lines.append(f"{icon} **{t.title}**{code}")
+        lines.append(f"> {icon} **{t.title}**{code}")
         lines.append(f"> 📅 {ddl}{status}\n")
 
     if truncated > 0:
@@ -127,15 +145,16 @@ def format_task_list_with_completed(
 def format_task_created(task: Task) -> str:
     """Confirmation panel after creating a single task."""
     icon = _urgency_icon(task.risk_score)
-    ddl = task.ddl_time.strftime("%m/%d %H:%M") if task.ddl_time else "?"
-    status = _ddl_status(task.ddl_time) if task.ddl_time else ""
+    ddl = task.ddl_time.strftime("%Y-%m-%d %H:%M") if task.ddl_time else "?"
+    remaining = _remaining_label(task.ddl_time) if task.ddl_time else ""
 
     code = f" #{task.short_code}" if hasattr(task, 'short_code') and task.short_code else ""
     lines = [
-        f"✅ 已创建{code}\n",
-        f"{icon} **{task.title}**",
-        f"> 📅 {ddl}{status}",
-        f"> 难度{task.difficulty:.0f} · 重要度{task.importance:.0f}",
+        f"✅ 任务已创建\n",
+        f"> {icon} **{task.title}**{code}",
+        f"> 📅 DDL: {ddl}",
+        f"> 难度: {task.difficulty:.0f} | 重要度: {task.importance:.0f}",
+        f"> {remaining}",
     ]
     if task.description:
         lines.append(f"> 💬 {task.description}")
@@ -299,22 +318,22 @@ def format_reminder(task: Task, advice: str, hours_left: float) -> str:
 
 def format_task_decomposition(task: Task, subtasks: list[dict]) -> str:
     """Auto-generated subtask breakdown from task analyzer."""
-    ddl = task.ddl_time.strftime("%m/%d %H:%M") if task.ddl_time else "?"
+    ddl = task.ddl_time.strftime("%Y-%m-%d %H:%M") if task.ddl_time else "?"
     total_hours = sum(st.get("estimated_hours", 1) for st in subtasks)
+    remaining = _remaining_label(task.ddl_time) if task.ddl_time else ""
 
     lines = [
         "📋 任务拆解\n",
-        f"**{task.title}**",
-        f"📅 {ddl} · 共{len(subtasks)}步 · 预计{total_hours:.1f}小时\n",
+        f"> **{task.title}**",
+        f"> 📅 DDL: {ddl} · {remaining}\n",
     ]
 
     for st in sorted(subtasks, key=lambda s: s.get("order", 0)):
         diff = st.get("difficulty", 5)
         hours = st.get("estimated_hours", 1)
-        icon = "🔴" if diff >= 7 else "🟡" if diff >= 4 else "🟢"
-        lines.append(f"{st.get('order', '?')}. {st['title']}")
-        lines.append(f"   {icon} 难度{diff:.0f} · {hours:.1f}h")
-        lines.append("")
+        order = st.get("order", "?")
+        lines.append(f"> {order}️⃣ {st['title']} — 预计 {hours:.0f}h — 难度 {diff:.0f}")
 
-    lines.append('<font color="comment">回复「列表」查看所有任务</font>')
+    lines.append("")
+    lines.append(f"> 建议分 {len(subtasks)} 步完成，共需约 {total_hours:.0f} 小时。")
     return "\n".join(lines)

@@ -129,8 +129,8 @@ async def _check_and_send():
 
 def _get_bot_client():
     """Get the bot WSClient instance (lazy import to avoid circular issues)."""
-    from app.services import bot_ws_client
-    return getattr(bot_ws_client, '_client', None)
+    from app.services.bot_ws_client import get_client
+    return get_client()
 
 
 async def _wait_for_client(timeout: int = 60) -> bool:
@@ -159,6 +159,24 @@ async def _get_active_chatids() -> list[str]:
         return []
     finally:
         db.close()
+
+
+async def send_manual_reminder(chatid: str) -> str:
+    """Generate a reminder for the user's top-risk task (manual trigger).
+
+    Returns the formatted reminder message, or a fallback if no tasks.
+    """
+    print(f"[Scheduler] Manual reminder triggered for chatid={chatid}")
+    task = await _get_top_task(chatid)
+    if not task:
+        print(f"[Scheduler] No pending tasks for chatid={chatid}")
+        return "✅ 暂无待办任务，不需要提醒"
+
+    print(f"[Scheduler] Top task: {task.title} (risk={task.risk_score})")
+    advice = await _generate_reminder(task)
+    if not advice:
+        advice = "加油，按时完成！"
+    return _format_reminder_message(task, advice)
 
 
 async def _get_top_task(chatid: str) -> Task | None:
