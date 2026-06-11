@@ -19,7 +19,9 @@
 
 ```
 DDL-killer/
+├── README.md                  # GitHub 项目展示文档
 ├── main.py                    # FastAPI 入口 + lifespan 启动 Bot WS
+├── entrypoint.sh              # Docker 启动脚本 (alembic upgrade head → uvicorn)
 ├── alembic.ini                # Alembic 配置 (script_location 指向 app/database/migrations)
 ├── .env                       # DB 凭据 + WECOM_BOT_ID + WECOM_BOT_SECRET
 ├── app/
@@ -50,6 +52,14 @@ DDL-killer/
 │       ├── init_db.py         # 模型导入入口（给 Alembic 注册 metadata）
 │       └── migrations/        # Alembic 迁移脚本
 ├── requirements.txt           # pip freeze 输出
+├── docs/                      # 项目文档
+│   ├── architecture.md        # 架构设计详解
+│   └── screenshots/           # README 效果截图
+├── tests/                     # 单元测试 (pytest)
+│   ├── conftest.py            # mock 外部依赖 (SDK/DB/pgvector)
+│   ├── test_risk_score.py     # calculate_risk 公式测试
+│   ├── test_short_code.py     # generate_short_code_sync 测试
+│   └── test_bot_parsers.py    # 正则解析器测试
 └── venv/                      # Python 虚拟环境
 ```
 
@@ -221,9 +231,8 @@ git push origin main
 3. **企微个人号无法过域名备案** — URL 回调方案不可行，不用再试 ngrok/natapp 等方案
 4. **SDK 事件回调必须用 async 函数** — `client.on("message", sync_func)` 会报 `NoneType can't be used in 'await'`
 5. **文件队列重启丢失** — `_file_queue` 只存内存，bot 重启后队列清空，已下载的文件变孤儿（文件在磁盘，可在 `list_unassociated()` 找回，但需手动关联）
-6. **scheduler 的 `_get_bot_client()` 用私有访问** — 应统一用 `bot_ws_client.get_client()`，当前 scheduler 走 `getattr(bot_ws_client, '_client', None)` 绕过了公开 API
-7. **`deepseek-chat` 模型偶尔返回非 JSON 格式的 tool call arguments** — `json.loads` 已做容错，但极端情况会丢参数
-8. **`.env` 含真实凭据，已加入 `.gitignore`** — 任何情况下不要把 `.env` 提交到 git
+6. **`deepseek-chat` 模型偶尔返回非 JSON 格式的 tool call arguments** — `json.loads` 已做容错，但极端情况会丢参数
+7. **`.env` 含真实凭据，已加入 `.gitignore`** — 任何情况下不要把 `.env` 提交到 git
 
 ## 待实现
 
@@ -239,9 +248,11 @@ git push origin main
 - [x] V3 任务自动拆解（文件内容提取 + LLM 分析子步骤 + 创建/关联时触发）
 - [x] 任务短编码体系（short_code 替代数字 ID）
 - [x] V4 文件队列 + associate_file tool + LLM 灵活路由（regex 范围缩小）
-- [ ] 单元测试和集成测试
-- [ ] scheduler `_get_bot_client()` 改用 `get_client()` 公开 API
+- [x] Docker 化部署（Dockerfile + docker-compose.yml，含 PostgreSQL + pgvector）
+- [x] 华为云部署
+- [x] 移除进群欢迎（`_send_welcome` — 企微事件回复超时，日志报 `invalid req_id`）
+- [x] 基础单元测试（risk_score / short_code / bot 正则解析，38 个用例）
+- [x] scheduler `_get_bot_client()` 改用 `get_client()` 公开 API
+- [ ] 图片 OCR 内容提取（当前只支持 PDF/DOCX/TXT）
 - [ ] 图片 OCR 内容提取（当前只支持 PDF/DOCX/TXT）
 - [ ] 文件队列持久化（当前重启丢失，可存 DB）
-- [ ] Docker 化部署（Dockerfile + docker-compose.yml，含 PostgreSQL + pgvector）
-- [ ] 华为云部署
